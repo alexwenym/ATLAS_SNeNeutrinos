@@ -1,0 +1,3 @@
+[submodule "ModelTemplates"]
+	path = ModelTemplates
+	url = https://github.com/pegasuskmurase/ModelTemplates.git
