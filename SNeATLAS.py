@@ -2,6 +2,7 @@ import numpy as np
 import scipy as sp
 import matplotlib.pyplot as plt
 import pandas as pd
+import nuflux
 
 # integration function changing variable to log, i.e. int f(x) dx --> integrate in u=logx
 # x is logspace, y is the function
@@ -164,6 +165,13 @@ class make_SNeNeutrinoSpectrumFromMurase():
                   'IGNORE13',
                   'CR_isallowed']
     
+    # helpful function to get the time range in which CR_isallowed==1
+    def get_CRtimeWindow(self):
+        nonzeroCR = self.SNeFluxDF[self.SNeFluxDF['CR_isallowed']==1]
+        starttime = np.asarray(nonzeroCR['time'])[0]
+        endtime = np.asarray(nonzeroCR['time'])[-1]
+        return [starttime, endtime]
+    
     # time integrate the neutrino number at each energy slice
     # ======== # ======== # ======== # ======== # ======== # ======== # ======== # ======== # 
     def get_dN_neutrino_dE_atEnergy(self, time, energy_index): 
@@ -250,7 +258,6 @@ class make_ATLASdetectorVolume:
         return self.detMass / (56*self.massNucleon)
 
 
-
 ########################################################################################################################
 # 
 ########################################################################################################################
@@ -271,7 +278,7 @@ class make_SNeEvent(make_NeutrinoEnsemble, make_SNeNeutrinoSpectrumFromMurase, m
     
     def dN(self, energy, distance): #at high energies such as these the nu_mu cross section can be used for nu_e and nu_tau
         dN = self.get_cs_nu_mu_cc_Fe56(energy) * self.get_Fe56inHcal() * self.interpolate_get_timeIntegrated_dN_neutrino_dE(energy)/(4*np.pi*distance**2) / 2
-        dNbar = self.get_cs_nu_mu_bar_cc_Fe56(energy) * self.get_Fe56inHcal() * self.interpolate_get_timeIntegrated_dN_neutrino_dE(energy)/(4*np.pi*distance**2) / 2 
+        dNbar = self.get_cs_nu_mu_bar_cc_Fe56(energy) * self.get_Fe56inHcal() * self.interpolate_get_timeIntegrated_dN_neutrino_dE(energy)/(4*np.pi*distance**2) / 2
         return dN + dNbar
     
     # integrate in log log space
@@ -282,3 +289,37 @@ class make_SNeEvent(make_NeutrinoEnsemble, make_SNeNeutrinoSpectrumFromMurase, m
         integral = integrate_logspace(x, y, integrationEnergyRange[0], integrationEnergyRange[1])[0]
         
         return integral 
+    
+
+########################################################################################################################
+# 
+########################################################################################################################
+class make_statTest():
+    
+    def __init__(self, signal_array, bkg_array): 
+        
+        assert len(signal_array)==len(bkg_array),"signal and background must be same size arrays"
+        self.signal_array = signal_array
+        self.bkg_array = bkg_array
+        
+    def get_pValue(self):
+    
+        q0 = 0
+    
+        for s, b in zip(self.signal_array, self.bkg_array):
+
+            pois = sp.stats.poisson(mu = s)
+            N = pois.median() + b
+            Y = b
+            term = None
+            if N != 0:
+                term = Y - N + N*np.log(N/Y)
+            else:
+                term = Y
+
+            q0 = q0 + 2*term
+
+        pval = 0.5*(1 - sp.special.erf(np.sqrt(q0/2)))
+        
+        return pval
+    
