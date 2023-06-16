@@ -195,6 +195,21 @@ class make_SNeNeutrinoSpectrumFromMurase():
     
         return timeIntegrated_dN_neutrino_dE
     
+    def get_timeIntegrated_dN_neutrino_dE_timerange(self, time_intrange):#time_intrange in seconds
+        
+        timeIntegrated_dN_neutrino_dE = np.zeros(self.block_size)
+        time_axis = self.time_array[:,0]
+        dN_neutrino_dE = self.dN_neutrino_dE.reshape((self.block_num, self.block_size))
+        
+        for energy_index in range(self.block_size):
+            # timeIntegrated_dN_neutrino_dE[energy_index]\
+            #  = sp.integrate.quad(self.get_dN_neutrino_dE_atEnergy, time_axis[0], time_axis[-1], args=(energy_index,),limit=10000)[0]
+            
+            dNdE = dN_neutrino_dE[:,energy_index]
+            timeIntegrated_dN_neutrino_dE[energy_index] = integrate_logspace(time_axis, dNdE, time_axis[0], time_axis[0]+time_intrange)[0]
+    
+        return timeIntegrated_dN_neutrino_dE
+    
     # time integrate the neutrino luminosity at each energy slice
     # ======== # ======== # ======== # ======== # ======== # ======== # ======== # ======== # 
     def get_dLumi_neutrino_dE_atEnergy(self, time, energy_index): 
@@ -213,6 +228,17 @@ class make_SNeNeutrinoSpectrumFromMurase():
         for energy_index in range(self.block_size):
             timeIntegrated_dLumi_neutrino_dE[energy_index]\
              = sp.integrate.quad(self.get_dLumi_neutrino_dE_atEnergy, time_axis[0], time_axis[-1], args=(energy_index,),limit=10000)[0]
+    
+        return timeIntegrated_dLumi_neutrino_dE
+    
+    def get_timeIntegrated_dLumi_neutrino_dE_timerange(self, time_intrange):
+        
+        timeIntegrated_dLumi_neutrino_dE = np.zeros(self.block_size)
+        time_axis = self.time_array[:,0]
+        
+        for energy_index in range(self.block_size):
+            timeIntegrated_dLumi_neutrino_dE[energy_index]\
+             = sp.integrate.quad(self.get_dLumi_neutrino_dE_atEnergy, time_axis[0], time_axis[0]+time_intrange, args=(energy_index,),limit=10000)[0]
     
         return timeIntegrated_dLumi_neutrino_dE
     
@@ -237,6 +263,15 @@ class make_crossSections:
         return np.interp(energy, self.cs_nu_mu_bar_cc_n[:,0], self.cs_nu_mu_bar_cc_n[:,1]*1e-38)
     def get_cs_nu_mu_bar_cc_p(self, energy):
         return np.interp(energy, self.cs_nu_mu_bar_cc_p[:,0], self.cs_nu_mu_bar_cc_p[:,1]*1e-38)
+    
+    def get_cs_nu_mu_cc_iso(self, energy):
+        cs_p = np.interp(energy, self.cs_nu_mu_cc_p[:,0], self.cs_nu_mu_cc_p[:,1]*1e-38)
+        cs_n = np.interp(energy, self.cs_nu_mu_cc_n[:,0], self.cs_nu_mu_cc_n[:,1]*1e-38)
+        return 0.5*(cs_p+cs_n)
+    def get_cs_nu_mu_bar_cc_iso(self, energy):
+        cs_p = np.interp(energy, self.cs_nu_mu_bar_cc_p[:,0], self.cs_nu_mu_bar_cc_p[:,1]*1e-38)
+        cs_n = np.interp(energy, self.cs_nu_mu_bar_cc_n[:,0], self.cs_nu_mu_bar_cc_n[:,1]*1e-38)
+        return 0.5*(cs_p+cs_n)
 
     def get_cs_nu_mu_cc_Fe56(self, energy): 
         return 30*self.get_cs_nu_mu_cc_n(energy) + 26*self.get_cs_nu_mu_cc_p(energy)
@@ -263,14 +298,17 @@ class make_ATLASdetectorVolume:
 ########################################################################################################################
 class make_SNeEvent(make_NeutrinoEnsemble, make_SNeNeutrinoSpectrumFromMurase, make_crossSections, make_ATLASdetectorVolume):
     
-    def __init__(self, detMass, flux_filename): 
+    def __init__(self, detMass, flux_filename, timerange='all'): 
         
         make_NeutrinoEnsemble.__init__(self, [1,1,1])
         make_ATLASdetectorVolume.__init__(self, detMass)
         make_SNeNeutrinoSpectrumFromMurase.__init__(self, flux_filename)
         make_crossSections.__init__(self)
         
-        self.timeIntegrated_dN_neutrino_dE = self.get_timeIntegrated_dN_neutrino_dE()
+        if timerange=='all':
+            self.timeIntegrated_dN_neutrino_dE = self.get_timeIntegrated_dN_neutrino_dE()
+        else:
+            self.timeIntegrated_dN_neutrino_dE = self.get_timeIntegrated_dN_neutrino_dE_timerange(timerange)
     
     # define the functions necessary to perform the integral
     def interpolate_get_timeIntegrated_dN_neutrino_dE(self, energy):
@@ -289,7 +327,11 @@ class make_SNeEvent(make_NeutrinoEnsemble, make_SNeNeutrinoSpectrumFromMurase, m
         integral = integrate_logspace(x, y, integrationEnergyRange[0], integrationEnergyRange[1])[0]
         
         return integral 
-    
+
+########################################################################################################################
+# 
+########################################################################################################################
+
 
 ########################################################################################################################
 # 
