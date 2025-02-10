@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import nuflux
 
+
 # integration function changing variable to log, i.e. int f(x) dx --> integrate in u=logx
 # x is logspace, y is the function
 def integrate_logspace(x, y, a, b):
@@ -255,6 +256,11 @@ class make_crossSections:
         self.cs_nu_mu_bar_cc_n = np.loadtxt("nu_cross_sections/nu_mu_bar_H2_cc_n.txt", dtype=float)
         self.cs_nu_mu_bar_cc_p = np.loadtxt("nu_cross_sections/nu_mu_bar_H2_cc_p.txt", dtype=float)
         
+        self.cs_nu_mu_nc_n = np.loadtxt("nu_cross_sections/nu_mu_H2_nc_n.txt", dtype=float)
+        self.cs_nu_mu_nc_p = np.loadtxt("nu_cross_sections/nu_mu_H2_nc_p.txt", dtype=float)
+        self.cs_nu_mu_bar_nc_n = np.loadtxt("nu_cross_sections/nu_mu_bar_H2_nc_n.txt", dtype=float)
+        self.cs_nu_mu_bar_nc_p = np.loadtxt("nu_cross_sections/nu_mu_bar_H2_nc_p.txt", dtype=float)
+        
     def get_cs_nu_mu_cc_n(self, energy):
         return np.interp(energy, self.cs_nu_mu_cc_n[:,0], self.cs_nu_mu_cc_n[:,1]*1e-38)
     def get_cs_nu_mu_cc_p(self, energy):
@@ -264,6 +270,15 @@ class make_crossSections:
     def get_cs_nu_mu_bar_cc_p(self, energy):
         return np.interp(energy, self.cs_nu_mu_bar_cc_p[:,0], self.cs_nu_mu_bar_cc_p[:,1]*1e-38)
     
+    def get_cs_nu_mu_nc_n(self, energy):
+        return np.interp(energy, self.cs_nu_mu_nc_n[:,0], self.cs_nu_mu_nc_n[:,1]*1e-38)
+    def get_cs_nu_mu_nc_p(self, energy):
+        return np.interp(energy, self.cs_nu_mu_nc_p[:,0], self.cs_nu_mu_nc_p[:,1]*1e-38)
+    def get_cs_nu_mu_bar_nc_n(self, energy):
+        return np.interp(energy, self.cs_nu_mu_bar_nc_n[:,0], self.cs_nu_mu_bar_nc_n[:,1]*1e-38)
+    def get_cs_nu_mu_bar_nc_p(self, energy):
+        return np.interp(energy, self.cs_nu_mu_bar_nc_p[:,0], self.cs_nu_mu_bar_nc_p[:,1]*1e-38)
+    
     def get_cs_nu_mu_cc_iso(self, energy):
         cs_p = np.interp(energy, self.cs_nu_mu_cc_p[:,0], self.cs_nu_mu_cc_p[:,1]*1e-38)
         cs_n = np.interp(energy, self.cs_nu_mu_cc_n[:,0], self.cs_nu_mu_cc_n[:,1]*1e-38)
@@ -271,6 +286,24 @@ class make_crossSections:
     def get_cs_nu_mu_bar_cc_iso(self, energy):
         cs_p = np.interp(energy, self.cs_nu_mu_bar_cc_p[:,0], self.cs_nu_mu_bar_cc_p[:,1]*1e-38)
         cs_n = np.interp(energy, self.cs_nu_mu_bar_cc_n[:,0], self.cs_nu_mu_bar_cc_n[:,1]*1e-38)
+        return 0.5*(cs_p+cs_n)
+    
+    def get_cs_nu_mu_nc_iso(self, energy):
+        cs_p = np.interp(energy, self.cs_nu_mu_nc_p[:,0], self.cs_nu_mu_nc_p[:,1]*1e-38)
+        cs_n = np.interp(energy, self.cs_nu_mu_nc_n[:,0], self.cs_nu_mu_nc_n[:,1]*1e-38)
+        return 0.5*(cs_p+cs_n)
+    def get_cs_nu_mu_bar_nc_iso(self, energy):
+        cs_p = np.interp(energy, self.cs_nu_mu_bar_nc_p[:,0], self.cs_nu_mu_bar_nc_p[:,1]*1e-38)
+        cs_n = np.interp(energy, self.cs_nu_mu_bar_nc_n[:,0], self.cs_nu_mu_bar_nc_n[:,1]*1e-38)
+        return 0.5*(cs_p+cs_n)
+    
+    def get_cs_nu_mu_ccnc_iso(self, energy):
+        cs_p = np.interp(energy, self.cs_nu_mu_nc_p[:,0], self.cs_nu_mu_nc_p[:,1]*1e-38) + np.interp(energy, self.cs_nu_mu_cc_p[:,0], self.cs_nu_mu_cc_p[:,1]*1e-38)
+        cs_n = np.interp(energy, self.cs_nu_mu_nc_n[:,0], self.cs_nu_mu_nc_n[:,1]*1e-38) + np.interp(energy, self.cs_nu_mu_cc_n[:,0], self.cs_nu_mu_cc_n[:,1]*1e-38)
+        return 0.5*(cs_p+cs_n)
+    def get_cs_nu_mu_bar_ccnc_iso(self, energy):
+        cs_p = np.interp(energy, self.cs_nu_mu_bar_nc_p[:,0], self.cs_nu_mu_bar_nc_p[:,1]*1e-38) + np.interp(energy, self.cs_nu_mu_bar_cc_p[:,0], self.cs_nu_mu_bar_cc_p[:,1]*1e-38)
+        cs_n = np.interp(energy, self.cs_nu_mu_bar_nc_n[:,0], self.cs_nu_mu_bar_nc_n[:,1]*1e-38) + np.interp(energy, self.cs_nu_mu_bar_cc_n[:,0], self.cs_nu_mu_bar_cc_n[:,1]*1e-38)
         return 0.5*(cs_p+cs_n)
 
     def get_cs_nu_mu_cc_Fe56(self, energy): 
@@ -291,6 +324,9 @@ class make_ATLASdetectorVolume:
     
     def get_Fe56inHcal(self): 
         return self.detMass / (56*self.massNucleon)
+    
+    def get_NucleonsInHcal(self): 
+        return self.detMass / self.massNucleon
 
 
 ########################################################################################################################
@@ -298,26 +334,48 @@ class make_ATLASdetectorVolume:
 ########################################################################################################################
 class make_SNeEvent(make_NeutrinoEnsemble, make_SNeNeutrinoSpectrumFromMurase, make_crossSections, make_ATLASdetectorVolume):
     
-    def __init__(self, detMass, flux_filename, timerange='all'): 
+    def __init__(self, detMass, flux_filename, timerange='all', cross_section='cc'): 
         
         make_NeutrinoEnsemble.__init__(self, [1,1,1])
         make_ATLASdetectorVolume.__init__(self, detMass)
         make_SNeNeutrinoSpectrumFromMurase.__init__(self, flux_filename)
         make_crossSections.__init__(self)
+        self.cs_option = cross_section
         
         if timerange=='all':
             self.timeIntegrated_dN_neutrino_dE = self.get_timeIntegrated_dN_neutrino_dE()
         else:
             self.timeIntegrated_dN_neutrino_dE = self.get_timeIntegrated_dN_neutrino_dE_timerange(timerange)
+        
+        # set the cross section to use. can choose between "cc", 'nc', and 'all'
+        self.nu_iso_cs_function = None
+        self.nu_bar_iso_cs_function = None
+        if self.cs_option == 'cc': 
+            self.nu_iso_cs_function = self.get_cs_nu_mu_cc_iso
+            self.nu_bar_iso_cs_function = self.get_cs_nu_mu_bar_cc_iso
+        elif self.cs_option == 'nc': 
+            self.nu_iso_cs_function = self.get_cs_nu_mu_nc_iso
+            self.nu_bar_iso_cs_function = self.get_cs_nu_mu_bar_nc_iso
+        elif self.cs_option == 'all': 
+            self.nu_iso_cs_function = self.get_cs_nu_mu_ccnc_iso
+            self.nu_bar_iso_cs_function = self.get_cs_nu_mu_bar_ccnc_iso
     
     # define the functions necessary to perform the integral
     def interpolate_get_timeIntegrated_dN_neutrino_dE(self, energy):
         return np.interp(np.log10(energy), np.log10(self.Energy_array[0]), self.timeIntegrated_dN_neutrino_dE)
     
     def dN(self, energy, distance): #at high energies such as these the nu_mu cross section can be used for nu_e and nu_tau
-        dN = self.get_cs_nu_mu_cc_Fe56(energy) * self.get_Fe56inHcal() * self.interpolate_get_timeIntegrated_dN_neutrino_dE(energy)/(4*np.pi*distance**2) / 2
-        dNbar = self.get_cs_nu_mu_bar_cc_Fe56(energy) * self.get_Fe56inHcal() * self.interpolate_get_timeIntegrated_dN_neutrino_dE(energy)/(4*np.pi*distance**2) / 2
+        dN = self.nu_iso_cs_function(energy) * self.get_NucleonsInHcal() * self.interpolate_get_timeIntegrated_dN_neutrino_dE(energy)/(4*np.pi*distance**2) / 2
+        dNbar = self.nu_bar_iso_cs_function(energy) * self.get_NucleonsInHcal() * self.interpolate_get_timeIntegrated_dN_neutrino_dE(energy)/(4*np.pi*distance**2) / 2
         return dN + dNbar
+    
+    def dN_only(self, energy, distance): #at high energies such as these the nu_mu cross section can be used for nu_e and nu_tau
+        dN = self.nu_iso_cs_function(energy) * self.get_NucleonsInHcal() * self.interpolate_get_timeIntegrated_dN_neutrino_dE(energy)/(4*np.pi*distance**2) / 2
+        return dN
+    
+    def dNbar_only(self, energy, distance): #at high energies such as these the nu_mu cross section can be used for nu_e and nu_tau
+        dNbar = self.nu_bar_iso_cs_function(energy) * self.get_NucleonsInHcal() * self.interpolate_get_timeIntegrated_dN_neutrino_dE(energy)/(4*np.pi*distance**2) / 2
+        return dNbar
     
     # integrate in log log space
     def get_eventNumber_intLogLogSpace(self, distance, integrationEnergyRange): #energy range in GeV still
@@ -327,6 +385,25 @@ class make_SNeEvent(make_NeutrinoEnsemble, make_SNeNeutrinoSpectrumFromMurase, m
         integral = integrate_logspace(x, y, integrationEnergyRange[0], integrationEnergyRange[1])[0]
         
         return integral 
+    
+    def get_eventNumber_intLogLogSpace_dN_only(self, distance, integrationEnergyRange): #energy range in GeV still
+        
+        x = np.logspace(np.log10(100), np.log10(1e7), num=1000)
+        y = self.dN_only(x, distance)
+        integral = integrate_logspace(x, y, integrationEnergyRange[0], integrationEnergyRange[1])[0]
+        
+        return integral 
+    
+    # integrate in log log space
+    def get_avgEnergy_intLogLogSpace(self, distance, integrationEnergyRange): #energy range in GeV still
+        
+        x = np.logspace(np.log10(100), np.log10(1e7), num=1000)
+        y = self.dN(x, distance)
+        yTimesEnergy = np.multiply(y,x)
+        integral = integrate_logspace(x, yTimesEnergy, integrationEnergyRange[0], integrationEnergyRange[1])[0]
+        norm = integrate_logspace(x, y, integrationEnergyRange[0], integrationEnergyRange[1])[0]
+        
+        return integral / norm
 
 ########################################################################################################################
 # 
@@ -348,11 +425,15 @@ class make_statTest():
     
         q0 = 0
     
-        for s, b in zip(self.signal_array, self.bkg_array):
+        for s, b in zip(self.signal_array, self.bkg_array):#arrays over energy bins
 
-            pois = sp.stats.poisson(mu = s)
-            N = pois.median() + b
+            pois = sp.stats.poisson(mu = s+b)
+            N = pois.median()
             Y = b
+            
+            #experimental
+            #N = s+b
+            
             term = None
             if N != 0:
                 term = Y - N + N*np.log(N/Y)
@@ -364,4 +445,53 @@ class make_statTest():
         pval = 0.5*(1 - sp.special.erf(np.sqrt(q0/2)))
         
         return pval
+    
+class make_statTest_flavorComparison():
+    
+    def __init__(self, signal_array, null_array): 
+        
+        assert len(signal_array)==len(null_array),"signal and null must be same size arrays"
+        self.signal_array = signal_array
+        self.null_array = null_array
+  
+    def get_pValue(self):
+    
+        q0 = 0
+    
+        for s, b in zip(self.signal_array, self.null_array):#arrays over energy bins
+
+            N = s
+            Y = b
+            
+            term = None
+            if N != 0:
+                term = Y - N + N*np.log(N/Y)
+            else:
+                term = Y
+
+            q0 = q0 + 2*term
+
+        pval = 0.5*(1 - sp.special.erf(np.sqrt(q0/2)))
+        
+        return pval
+    
+    def get_T(self): 
+        
+        q0 = 0
+    
+        for s, b in zip(self.signal_array, self.null_array):#arrays over energy bins
+
+            N = s
+            Y = b
+            
+            term = None
+            if N != 0:
+                term = Y - N + N*np.log(N/Y)
+            else:
+                term = Y
+
+            q0 = q0 + 2*term
+            
+        return q0
+        
     
